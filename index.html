@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UrbanChain â Key Accounts Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#00E5BF;--primary-light:#E0FFF8;--primary-lighter:#B3FFF0;--primary-dark:#00CCaa;--primary-darker:#00B396;
+  --secondary:#6C5CE7;--secondary-light:#F0EEFF;--secondary-lighter:#D4CFFC;--secondary-dark:#5A49D6;
+  --accent:#D4FF00;--accent-light:#EAFF66;--accent-dark:#BFEE00;
+  --navy:#0D0B2E;--black:#0A0A0A;--white:#FFFFFF;
+  --gray-50:#F8F9FA;--gray-100:#F1F3F5;--gray-200:#E9ECEF;--gray-300:#DEE2E6;--gray-400:#CED4DA;
+  --gray-500:#ADB5BD;--gray-600:#868E96;--gray-700:#495057;--gray-800:#343A40;--gray-900:#212529;
+  --success:#28A745;--error:#DC3545;--warning:#F59E0B;
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.05);--shadow-md:0 4px 6px rgba(0,0,0,0.07);
+  --shadow-lg:0 10px 15px rgba(0,0,0,0.1);--shadow-xl:0 20px 25px rgba(0,0,0,0.12);
+}
+body{font-family:"DM Sans",system-ui,-apple-system,sans-serif;line-height:1.6;color:var(--gray-900);background:var(--gray-50)}
+
+/* Header */
+header{background:linear-gradient(135deg,var(--navy) 0%,#1a1640 100%);color:var(--white);padding:20px 32px;border-bottom:3px solid var(--primary);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;overflow:hidden}
+header::before{content:'';position:absolute;top:-50%;right:-5%;width:500px;height:500px;background:radial-gradient(circle,var(--primary) 0%,transparent 70%);opacity:0.08;border-radius:50%;pointer-events:none}
+.logo-area{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+.logo-mark{width:38px;height:38px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--navy);letter-spacing:-0.5px}
+h1{font-size:20px;font-weight:700;letter-spacing:-0.02em}
+h1 span{color:var(--primary)}
+.header-right{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+.sync-badge{font-size:12px;color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.08);padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:8px}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.3);flex-shrink:0}
+.dot.active{background:var(--primary);box-shadow:0 0 10px rgba(0,229,191,0.5)}
+.upload-btn{background:var(--primary);color:var(--navy);border:none;padding:10px 22px;border-radius:24px;font-family:"DM Sans",sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all 0.2s;letter-spacing:0.2px;box-shadow:0 2px 8px rgba(0,229,191,0.3)}
+.upload-btn:hover{background:var(--primary-dark);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,229,191,0.4)}
+#file-input{display:none}
+
+/* Nav */
+.nav-tabs{display:flex;gap:0;padding:0 32px;background:var(--white);border-bottom:1px solid var(--gray-200);box-shadow:var(--shadow-sm)}
+.nav-tab{padding:14px 22px;font-size:14px;font-weight:500;color:var(--gray-600);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}
+.nav-tab:hover{color:var(--navy)}
+.nav-tab.active{color:var(--navy);font-weight:600;border-bottom-color:var(--primary)}
+
+main{padding:28px 32px;max-width:1440px;margin:0 auto}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{background:var(--white);border:1px solid var(--gray-200);border-radius:12px;padding:20px 22px;box-shadow:var(--shadow-sm);transition:all 0.2s}
+.stat-card:hover{box-shadow:var(--shadow-md);border-color:var(--primary);transform:translateY(-2px)}
+.stat-label{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--gray-500);margin-bottom:6px;font-weight:600}
+.stat-value{font-size:28px;font-weight:700;letter-spacing:-0.5px;color:var(--navy)}
+.stat-value.v-primary{color:var(--primary-darker)}
+.stat-value.v-secondary{color:var(--secondary)}
+.stat-value.v-accent{color:var(--accent-dark)}
+.stat-sub{font-size:12px;color:var(--gray-500);margin-top:3px}
+
+/* Tier */
+.tier-badge{display:inline-block;padding:4px 12px;border-radius:24px;font-size:12px;font-weight:600}
+.tier-badge.t1{background:var(--primary-light);color:var(--primary-darker)}
+.tier-badge.t2{background:var(--secondary-light);color:var(--secondary-dark)}
+.tier-badge.t3{background:#FFF8E1;color:#F59E0B}
+.tier-badge.t4{background:var(--gray-100);color:var(--gray-600)}
+
+/* Table */
+.table-container{background:var(--white);border:1px solid var(--gray-200);border-radius:12px;box-shadow:var(--shadow-sm);overflow:hidden}
+.table-header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--gray-200)}
+.table-title{font-size:16px;font-weight:600;color:var(--navy)}
+.table-search{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:9px 14px;color:var(--gray-800);font-family:"DM Sans",sans-serif;font-size:13px;width:260px;outline:none;transition:all 0.2s}
+.table-search:focus{border-color:var(--primary);background:var(--primary-light);box-shadow:0 0 0 3px rgba(0,229,191,0.1)}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;padding:11px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gray-500);font-weight:600;border-bottom:1px solid var(--gray-200);white-space:nowrap;cursor:pointer;user-select:none;background:var(--gray-50)}
+thead th:hover{color:var(--primary-darker)}
+tbody tr{border-bottom:1px solid var(--gray-100);transition:background 0.15s}
+tbody tr:hover{background:var(--primary-light)}
+tbody td{padding:13px 16px;font-size:13px;white-space:nowrap;color:var(--gray-800)}
+.account-name{font-weight:600;color:var(--navy)}
+.sector-tag{color:var(--gray-600);font-size:12px}
+.pipeline-val{font-weight:600;font-size:13px;color:var(--secondary)}
+.mwh-val{font-weight:600;font-size:13px;color:var(--primary-darker)}
+.confidence-bar{width:56px;height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
+.confidence-fill{height:100%;border-radius:3px;transition:width 0.3s}
+.stage-badge{padding:4px 10px;border-radius:24px;font-size:11px;font-weight:600;background:var(--gray-100);color:var(--gray-600)}
+.stage-badge.won{background:#D4EDDA;color:#155724}
+.stage-badge.lost{background:#F8D7DA;color:#721C24}
+.stage-badge.nego{background:#FFF3CD;color:#856404}
+.stage-badge.prop{background:var(--secondary-light);color:var(--secondary-dark)}
+
+/* RAG */
+.rag{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid var(--white);box-shadow:var(--shadow-sm)}
+.rag.green{background:var(--success)}
+.rag.amber{background:var(--warning)}
+.rag.red{background:var(--error)}
+.rag.none{background:var(--gray-300)}
+
+/* Pipeline */
+.pipeline-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:20px}
+.pipeline-col{background:var(--white);border:1px solid var(--gray-200);border-radius:12px;padding:16px;box-shadow:var(--shadow-sm)}
+.pipeline-col-header{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray-700);margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center}
+.pipeline-col-count{background:var(--primary-light);color:var(--primary-darker);padding:2px 10px;border-radius:24px;font-size:11px;font-weight:700}
+.pipeline-card{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:14px;margin-bottom:10px;transition:all 0.2s;border-left:3px solid var(--primary)}
+.pipeline-card:hover{box-shadow:var(--shadow-md);border-left-color:var(--secondary)}
+.pipeline-card .name{font-weight:600;font-size:13px;color:var(--navy);margin-bottom:4px}
+.pipeline-card .detail{font-size:12px;color:var(--gray-600)}
+
+/* Sectors */
+.sector-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:20px}
+.sector-card{background:var(--white);border:1px solid var(--gray-200);border-radius:12px;padding:18px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow-sm);transition:all 0.2s}
+.sector-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.sector-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.sector-info .name{font-weight:600;font-size:14px;color:var(--navy)}
+.sector-info .meta{font-size:12px;color:var(--gray-600);margin-top:2px}
+
+/* Health */
+.health-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+.health-card{background:var(--white);border:1px solid var(--gray-200);border-radius:12px;padding:24px;text-align:center;box-shadow:var(--shadow-sm);transition:all 0.2s}
+.health-card:hover{box-shadow:var(--shadow-md)}
+.health-card .count{font-size:42px;font-weight:700;margin:8px 0}
+.health-card .label{font-size:12px;color:var(--gray-600);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+
+/* Empty */
+.empty-state{text-align:center;padding:80px 20px}
+.empty-state .icon{font-size:56px;margin-bottom:20px;opacity:0.5}
+.empty-state h2{font-size:22px;font-weight:700;margin-bottom:8px;color:var(--navy)}
+.empty-state p{font-size:14px;color:var(--gray-600);max-width:420px;margin:0 auto 28px}
+.empty-state .upload-hint{background:var(--primary);color:var(--navy);border:none;padding:12px 28px;border-radius:24px;font-family:"DM Sans",sans-serif;font-weight:600;font-size:14px;cursor:pointer;box-shadow:0 2px 12px rgba(0,229,191,0.3);transition:all 0.2s}
+.empty-state .upload-hint:hover{background:var(--primary-dark);transform:translateY(-1px)}
+
+.tab-content{display:none}
+.tab-content.active{display:block}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--gray-50)}
+::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--gray-400)}
+
+@media(max-width:768px){
+  header{padding:16px;flex-wrap:wrap;gap:12px}
+  main{padding:16px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .nav-tabs{overflow-x:auto;padding:0 16px}
+  .health-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <div class="logo-mark">UC</div>
+    <h1><span>UrbanChain</span> Key Accounts</h1>
+  </div>
+  <div class="header-right">
+    <div class="sync-badge"><span class="dot" id="sync-dot"></span><span id="sync-text">No data loaded</span></div>
+    <button class="upload-btn" onclick="document.getElementById('file-input').click()">â¬ Upload Excel</button>
+    <input type="file" id="file-input" accept=".xlsx,.xls" onchange="handleFile(event)">
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <div class="nav-tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="nav-tab" onclick="switchTab('accounts',this)">Accounts</div>
+  <div class="nav-tab" onclick="switchTab('pipeline',this)">Pipeline</div>
+  <div class="nav-tab" onclick="switchTab('health',this)">Health</div>
+  <div class="nav-tab" onclick="switchTab('sectors',this)">Sectors</div>
+</nav>
+
+<main>
+  <div class="tab-content active" id="tab-overview">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Accounts</div><div class="stat-value v-primary" id="s-total">â</div><div class="stat-sub" id="s-active"></div></div>
+      <div class="stat-card"><div class="stat-label">Pipeline Value</div><div class="stat-value v-secondary" id="s-pipeline">â</div><div class="stat-sub" id="s-weighted"></div></div>
+      <div class="stat-card"><div class="stat-label">Forecast MWh</div><div class="stat-value v-accent" id="s-mwh">â</div><div class="stat-sub">Annual volume</div></div>
+      <div class="stat-card"><div class="stat-label">Avg Confidence</div><div class="stat-value" id="s-conf">â</div><div class="stat-sub" id="s-conf-sub"></div></div>
+      <div class="stat-card"><div class="stat-label">Tier 1 â Strategic</div><div class="stat-value v-primary" id="s-t1">â</div><div class="stat-sub">Highest priority</div></div>
+      <div class="stat-card"><div class="stat-label">Tier 2 â Growth</div><div class="stat-value v-secondary" id="s-t2">â</div><div class="stat-sub">Scaling accounts</div></div>
+    </div>
+    <div class="table-container" id="overview-table-wrap" style="display:none">
+      <div class="table-header"><div class="table-title">All Key Accounts</div><input type="text" class="table-search" placeholder="Search accounts..." oninput="filterTable(this.value)" id="search-input"></div>
+      <div style="overflow-x:auto;max-height:600px;overflow-y:auto">
+        <table><thead><tr><th onclick="sortTable(0)">Account â</th><th onclick="sortTable(1)">Tier</th><th onclick="sortTable(2)">Sector</th><th onclick="sortTable(3)">Type</th><th onclick="sortTable(4)">Stage</th><th onclick="sortTable(5)">Pipeline Â£</th><th onclick="sortTable(6)">Forecast MWh</th><th onclick="sortTable(7)">Confidence</th><th onclick="sortTable(8)">RAG</th><th>Owner</th></tr></thead><tbody id="accounts-body"></tbody></table>
+      </div>
+    </div>
+    <div class="empty-state" id="empty-state"><div class="icon">ð</div><h2>Upload your Key Accounts spreadsheet</h2><p>Load urbanchain_key_accounts.xlsx from SharePoint to populate the dashboard with live account data.</p><button class="upload-hint" onclick="document.getElementById('file-input').click()">Upload Excel</button></div>
+  </div>
+
+  <div class="tab-content" id="tab-accounts">
+    <div class="table-container"><div class="table-header"><div class="table-title">Detailed Account View</div><input type="text" class="table-search" placeholder="Search..." oninput="filterDetailTable(this.value)"></div>
+      <div style="overflow-x:auto;max-height:700px;overflow-y:auto"><table><thead><tr><th>Account</th><th>Tier</th><th>Primary Contact</th><th>Title</th><th>Deal Name</th><th>Pipeline Â£</th><th>Term</th><th>Close Date</th><th>Last Interaction</th><th>Next Action</th><th>Strategic Notes</th></tr></thead><tbody id="detail-body"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-pipeline">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Pipeline</div><div class="stat-value v-secondary" id="p-total">â</div></div>
+      <div class="stat-card"><div class="stat-label">Weighted Pipeline</div><div class="stat-value v-primary" id="p-weighted">â</div></div>
+      <div class="stat-card"><div class="stat-label">Deals in Progress</div><div class="stat-value" id="p-deals">â</div></div>
+      <div class="stat-card"><div class="stat-label">Avg Confidence</div><div class="stat-value" id="p-conf">â</div></div>
+    </div>
+    <div class="pipeline-cols" id="pipeline-cols"></div>
+  </div>
+
+  <div class="tab-content" id="tab-health">
+    <div class="health-grid">
+      <div class="health-card"><div class="label">ð¢ Green</div><div class="count" id="h-green" style="color:var(--success)">â</div><div class="label">Healthy</div></div>
+      <div class="health-card"><div class="label">ð¡ Amber</div><div class="count" id="h-amber" style="color:var(--warning)">â</div><div class="label">Needs Attention</div></div>
+      <div class="health-card"><div class="label">ð´ Red</div><div class="count" id="h-red" style="color:var(--error)">â</div><div class="label">At Risk</div></div>
+    </div>
+    <div class="table-container" style="margin-top:20px"><div class="table-header"><div class="table-title">Relationship Health Detail</div></div>
+      <div style="overflow-x:auto"><table><thead><tr><th>Account</th><th>RAG</th><th>Score</th><th>Last Interaction</th><th>Type</th><th>Next Action Date</th><th>Next Action</th><th>Strategic Notes</th></tr></thead><tbody id="health-body"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-sectors">
+    <div class="sector-grid" id="sector-grid"></div>
+    <div class="table-container" style="margin-top:20px"><div class="table-header"><div class="table-title">Accounts by Sector</div></div>
+      <div style="overflow-x:auto"><table><thead><tr><th>Sector</th><th>Count</th><th>Pipeline Â£</th><th>Forecast MWh</th><th>Accounts</th></tr></thead><tbody id="sector-body"></tbody></table></div>
+    </div>
+  </div>
+</main>
+
+<script>
+let DATA=[],sortCol=-1,sortAsc=true;
+const SI={'Financial Services':'ð¦','Energy':'â¡','Real Estate':'ð¢','Infrastructure':'ðï¸','Public Sector':'ðï¸','Industrial':'ð­','Technology':'ð»','Utilities':'ð','Waste & Recycling':'â»ï¸','EV Charging':'ð','Retail':'ð','Agriculture':'ð¾','Transport':'ð'};
+const SC={'Financial Services':'#4dabf7','Energy':'#F59E0B','Waste & Recycling':'#28A745','EV Charging':'#00E5BF','Public Sector':'#ff922b','Agriculture':'#a9e34b','Real Estate':'#845ef7','Infrastructure':'#339af0','Industrial':'#868e96','Technology':'#6C5CE7','Utilities':'#ffd43b','Retail':'#f06595','Transport':'#20c997'};
+
+function handleFile(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'binary',cellDates:true});
+      let ws=wb.Sheets['Key Accounts']||wb.Sheets[wb.SheetNames.find(n=>n.toLowerCase().includes('key account'))]||wb.Sheets[wb.SheetNames[1]]||wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      let hi=-1;
+      for(let i=0;i<Math.min(10,raw.length);i++){if(raw[i].map(c=>String(c).toLowerCase().trim()).some(c=>c.includes('account name'))){hi=i;break;}}
+      if(hi===-1){alert('Could not find "Account Name" header.');return;}
+      const H=raw[hi].map(h=>String(h).trim());
+      const col=name=>{let i=H.findIndex(h=>h.toLowerCase().replace(/\n/g,' ').includes(name.toLowerCase()));return i;};
+      const colM=(a,b)=>H.findIndex(h=>{const l=h.toLowerCase().replace(/\n/g,' ');return l.includes(a.toLowerCase())&&l.includes(b.toLowerCase());});
+      DATA=[];
+      for(let i=hi+2;i<raw.length;i++){
+        const r=raw[i];const name=String(r[col('Account Name')]||'').trim();
+        if(!name||name.toLowerCase().startsWith('e.g.')||name.toLowerCase()==='select')continue;
+        DATA.push({
+          name,tier:String(r[col('Account Tier')]||''),relType:String(r[col('Relationship Type')]||''),
+          sector:String(r[col('Sector')]||''),subSector:String(r[col('Sub-Sector')]||''),status:String(r[col('Account Status')]||''),
+          owner:String(r[col('Key Account Owner')]||r[col('SLT')]||''),manager:String(r[col('Account Manager')]||''),
+          contactName:String(r[colM('Primary Contact','Name')]||''),contactTitle:String(r[colM('Primary Contact','Title')]||''),
+          contactEmail:String(r[colM('Primary Contact','Email')]||''),
+          dealName:String(r[col('Active Deal Name')]||''),dealStage:String(r[col('Deal Stage')]||''),
+          pipeline:parseFloat(r[col('Pipeline Value')]||0)||0,forecastMWh:parseFloat(r[col('Forecast MWh')]||0)||0,
+          term:parseFloat(r[col('Contract Term')]||0)||0,closeDate:r[col('Target Close')]||'',
+          confidence:parseFloat(r[col('Confidence')]||0)||0,rag:String(r[col('RAG Status')]||''),
+          score:parseFloat(r[H.findIndex(h=>h.toLowerCase().includes('score'))]||0)||0,
+          lastDate:r[colM('Last Interaction','Date')]||'',lastType:String(r[colM('Last Interaction','Type')]||''),
+          nextDate:r[colM('Next Action','Date')]||'',nextAction:String(r[colM('Next Action','Desc')]||''),
+          notes:String(r[col('Strategic Notes')]||''),hubDeal:String(r[col('HubSpot Deal')]||''),hubCompany:String(r[col('HubSpot Company')]||''),
+        });
+      }
+      updateDashboard();updateSync();
+    }catch(err){alert('Error: '+err.message);console.error(err);}
+  };reader.readAsBinaryString(file);
+}
+
+function updateSync(){
+  const now=new Date();const ts=now.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('sync-dot').classList.add('active');document.getElementById('sync-text').textContent='Synced '+ts;
+  document.getElementById('empty-state').style.display='none';document.getElementById('overview-table-wrap').style.display='block';
+}
+
+function updateDashboard(){
+  if(!DATA.length)return;
+  const active=DATA.filter(d=>d.status==='Active').length,t1=DATA.filter(d=>d.tier.includes('Tier 1')).length,t2=DATA.filter(d=>d.tier.includes('Tier 2')).length;
+  const totalP=DATA.reduce((s,d)=>s+d.pipeline,0),totalM=DATA.reduce((s,d)=>s+d.forecastMWh,0);
+  const wc=DATA.filter(d=>d.confidence>0),avg=wc.length?Math.round(wc.reduce((s,d)=>s+d.confidence,0)/wc.length):0;
+  const wp=DATA.reduce((s,d)=>s+(d.pipeline*d.confidence/100),0);
+  el('s-total').textContent=DATA.length;el('s-active').textContent=active+' active';
+  el('s-pipeline').textContent=fC(totalP);el('s-weighted').textContent='Weighted: '+fC(wp);
+  el('s-mwh').textContent=fN(totalM);el('s-conf').textContent=avg?avg+'%':'â';
+  el('s-conf-sub').textContent=wc.length?wc.length+' deals scored':'No deals scored';
+  el('s-t1').textContent=t1;el('s-t2').textContent=t2;
+  renderOT();renderDT();renderP(totalP,wp,avg);renderH();renderS();
+}
+
+function el(id){return document.getElementById(id)}
+function tc(t){if(t.includes('1'))return't1';if(t.includes('2'))return't2';if(t.includes('3'))return't3';return't4';}
+function tl(t){if(t.includes('1'))return'Tier 1';if(t.includes('2'))return'Tier 2';if(t.includes('3'))return'Tier 3';if(t.includes('4'))return'Tier 4';return t.substring(0,8);}
+function rc(r){const l=r.toLowerCase();if(l.includes('green')||l.includes('ð¢'))return'green';if(l.includes('amber')||l.includes('ð¡'))return'amber';if(l.includes('red')||l.includes('ð´'))return'red';return'none';}
+function cc(c){if(c>=70)return'var(--success)';if(c>=40)return'var(--warning)';if(c>0)return'var(--error)';return'var(--gray-300)';}
+function sc(s){const l=s.toLowerCase();if(l.includes('won'))return'won';if(l.includes('lost'))return'lost';if(l.includes('nego'))return'nego';if(l.includes('prop'))return'prop';return'';}
+function fC(v){if(!v)return'Â£0';if(v>=1e6)return'Â£'+(v/1e6).toFixed(1)+'M';if(v>=1e3)return'Â£'+(v/1e3).toFixed(0)+'k';return'Â£'+v.toLocaleString('en-GB');}
+function fN(v){if(!v)return'0';return v.toLocaleString('en-GB');}
+function fD(d){if(!d)return'â';if(d instanceof Date)return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});return String(d).substring(0,12);}
+
+function renderOT(f=''){
+  const b=el('accounts-body'),data=f?DATA.filter(d=>d.name.toLowerCase().includes(f.toLowerCase())||d.sector.toLowerCase().includes(f.toLowerCase())):DATA;
+  b.innerHTML=data.map(d=>`<tr><td class="account-name">${d.name}</td><td><span class="tier-badge ${tc(d.tier)}">${tl(d.tier)}</span></td><td class="sector-tag">${d.sector}</td><td class="sector-tag">${d.relType}</td><td><span class="stage-badge ${sc(d.dealStage)}">${d.dealStage||'â'}</span></td><td class="pipeline-val">${d.pipeline?fC(d.pipeline):'â'}</td><td class="mwh-val">${d.forecastMWh?fN(d.forecastMWh):'â'}</td><td>${d.confidence?`<span class="confidence-bar"><span class="confidence-fill" style="width:${d.confidence}%;background:${cc(d.confidence)}"></span></span><span style="font-size:12px;font-weight:600">${d.confidence}%</span>`:'â'}</td><td><span class="rag ${rc(d.rag)}"></span></td><td class="sector-tag">${d.owner||'â'}</td></tr>`).join('');
+}
+
+function renderDT(f=''){
+  const b=el('detail-body'),data=f?DATA.filter(d=>d.name.toLowerCase().includes(f.toLowerCase())):DATA;
+  b.innerHTML=data.map(d=>`<tr><td class="account-name">${d.name}</td><td><span class="tier-badge ${tc(d.tier)}">${tl(d.tier)}</span></td><td>${d.contactName||'â'}</td><td class="sector-tag">${d.contactTitle||'â'}</td><td>${d.dealName||'â'}</td><td class="pipeline-val">${d.pipeline?fC(d.pipeline):'â'}</td><td>${d.term||'â'}</td><td>${fD(d.closeDate)}</td><td>${fD(d.lastDate)}</td><td style="max-width:200px;white-space:normal;font-size:12px">${d.nextAction||'â'}</td><td style="max-width:250px;white-space:normal;font-size:12px;color:var(--gray-600)">${d.notes||'â'}</td></tr>`).join('');
+}
+
+function renderP(total,wp,avg){
+  el('p-total').textContent=fC(total);el('p-weighted').textContent=fC(wp);
+  el('p-deals').textContent=DATA.filter(d=>d.dealStage).length;el('p-conf').textContent=avg?avg+'%':'â';
+  const stages=['Prospecting','Discovery','Proposal Sent','Negotiation','Contract Review','Closed Won','Stalled','On Hold'];
+  el('pipeline-cols').innerHTML=stages.map(s=>{const a=DATA.filter(d=>d.dealStage===s);return`<div class="pipeline-col"><div class="pipeline-col-header">${s}<span class="pipeline-col-count">${a.length}</span></div>${a.map(d=>`<div class="pipeline-card"><div class="name">${d.name}</div><div class="detail">${d.pipeline?fC(d.pipeline):''} ${d.forecastMWh?'Â· '+fN(d.forecastMWh)+' MWh':''}</div>${d.confidence?`<div class="detail" style="margin-top:4px"><span class="confidence-bar"><span class="confidence-fill" style="width:${d.confidence}%;background:${cc(d.confidence)}"></span></span> ${d.confidence}%</div>`:''}</div>`).join('')||'<div style="font-size:12px;color:var(--gray-500);padding:12px;text-align:center">No accounts</div>'}</div>`;}).join('');
+}
+
+function renderH(){
+  el('h-green').textContent=DATA.filter(d=>rc(d.rag)==='green').length;
+  el('h-amber').textContent=DATA.filter(d=>rc(d.rag)==='amber').length;
+  el('h-red').textContent=DATA.filter(d=>rc(d.rag)==='red').length;
+  el('health-body').innerHTML=DATA.map(d=>`<tr><td class="account-name">${d.name}</td><td><span class="rag ${rc(d.rag)}"></span> ${d.rag||'Not set'}</td><td style="color:var(--warning)">${d.score?'â'.repeat(Math.round(d.score))+'â'.repeat(5-Math.round(d.score)):'â'}</td><td>${fD(d.lastDate)}</td><td class="sector-tag">${d.lastType||'â'}</td><td>${fD(d.nextDate)}</td><td style="max-width:200px;white-space:normal;font-size:12px">${d.nextAction||'â'}</td><td style="max-width:250px;white-space:normal;font-size:12px;color:var(--gray-600)">${d.notes||'â'}</td></tr>`).join('');
+}
+
+function renderS(){
+  const sec={};DATA.forEach(d=>{const s=d.sector||'Other';if(!sec[s])sec[s]={count:0,pipeline:0,mwh:0,accounts:[]};sec[s].count++;sec[s].pipeline+=d.pipeline;sec[s].mwh+=d.forecastMWh;sec[s].accounts.push(d.name);});
+  el('sector-grid').innerHTML=Object.entries(sec).sort((a,b)=>b[1].count-a[1].count).map(([n,d])=>`<div class="sector-card"><div class="sector-icon" style="background:${(SC[n]||'#6c757d')}15;color:${SC[n]||'#6c757d'}">${SI[n]||'ð'}</div><div class="sector-info"><div class="name">${n}</div><div class="meta">${d.count} account${d.count>1?'s':''} Â· ${d.pipeline?fC(d.pipeline):'Â£0'} pipeline</div></div></div>`).join('');
+  el('sector-body').innerHTML=Object.entries(sec).sort((a,b)=>b[1].pipeline-a[1].pipeline||b[1].count-a[1].count).map(([n,d])=>`<tr><td class="account-name">${SI[n]||''} ${n}</td><td style="font-weight:600">${d.count}</td><td class="pipeline-val">${fC(d.pipeline)}</td><td class="mwh-val">${fN(d.mwh)}</td><td style="font-size:12px;color:var(--gray-600)">${d.accounts.join(', ')}</td></tr>`).join('');
+}
+
+function filterTable(v){renderOT(v);}
+function filterDetailTable(v){renderDT(v);}
+function sortTable(c){if(sortCol===c)sortAsc=!sortAsc;else{sortCol=c;sortAsc=true;}const k=['name','tier','sector','relType','dealStage','pipeline','forecastMWh','confidence','rag'][c];DATA.sort((a,b)=>{let va=a[k],vb=b[k];if(typeof va==='number')return sortAsc?va-vb:vb-va;return sortAsc?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va));});renderOT(el('search-input').value);}
+function switchTab(t,e){document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));el('tab-'+t).classList.add('active');e.classList.add('active');}
+</script>
+</body>
+</html>
